@@ -15,12 +15,11 @@ jobs:
         run: |
           wget https://services.gradle.org/distributions/gradle-8.2-bin.zip
           unzip gradle-8.2-bin.zip
-          ./gradle-8.2/bin/gradle assembleDebug || echo "Build failed, checking logs"
+          chmod +x ./gradle-8.2/bin/gradle
+          ./gradle-8.2/bin/gradle assembleDebug --stacktrace
 
-      - name: Upload APK
+      - name: Find and Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: OTC-AI-BOT-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
-
-          
+          path: "**/*.apk"
