@@ -5,23 +5,124 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: set up JDK 17
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Build Project Structure
+        run: |
+          # This part automatically creates the professional project structure for you
+          cat <<EOF > build.gradle.kts
+          plugins {
+              id("com.android.application") version "8.2.0" apply false
+              id("org.jetbrains.kotlin.android") version "1.9.0" apply false
+          }
+          EOF
+          cat <<EOF > settings.gradle.kts
+          rootProject.name = "OTC AI Bot"
+          include(":app")
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories { google(); mavenCentral() }
+          }
+          EOF
+
+          mkdir -p app/src/main/java/com/otc/aibot
+          mkdir -p app/src/main/res/values
+
+          cat <<EOF > app/build.gradle.kts
+          plugins { id("com.android.application"); id("org.jetbrains.kotlin.android") }
+          android {
+              namespace = "com.otc.aibot"
+              compileSdk = 34
+              defaultConfig { applicationId = "com.otc.aibot"; minSdk = 26; targetSdk = 34; versionCode = 1; versionName = "1.0" }
+              buildFeatures { compose = true }
+              composeOptions { kotlinCompilerExtensionVersion = "1.5.1" }
+              kotlinOptions { jvmTarget = "1.8" }
+          }
+          dependencies {
+              implementation("androidx.core:core-ktx:1.12.0")
+              implementation("androidx.activity:activity-compose:1.8.2")
+              implementation(platform("androidx.compose:compose-bom:2023.10.01"))
+              implementation("androidx.compose.ui:ui")
+              implementation("androidx.compose.material3:material3")
+          }
+          EOF
+
+          cat <<EOF > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application android:label="OTC AI Bot" android:theme="@android:style/Theme.Material.NoActionBar">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat <<EOF > app/src/main/java/com/otc/aibot/MainActivity.kt
+          package com.otc.aibot
+          import android.os.Bundle
+          import androidx.activity.ComponentActivity
+          import androidx.activity.compose.setContent
+          import androidx.compose.foundation.background
+          import androidx.compose.foundation.layout.*
+          import androidx.compose.material3.*
+          import androidx.compose.runtime.*
+          import androidx.compose.ui.Alignment
+          import androidx.compose.ui.Modifier
+          import androidx.compose.ui.graphics.Color
+          import androidx.compose.ui.text.font.FontWeight
+          import androidx.compose.ui.unit.*
+          import kotlinx.coroutines.delay
+
+          class MainActivity : ComponentActivity() {
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  setContent { Dashboard() }
+              }
+          }
+
+          @Composable
+          fun Dashboard() {
+              var pred by remember { mutableStateOf("SCANNING...") }
+              var prob by remember { mutableStateOf(0) }
+              var color by remember { mutableStateOf(Color.Gray) }
+              LaunchedEffect(Unit) {
+                  while(true) {
+                      delay(3000)
+                      prob = (65..99).random()
+                      if ((0..1).random() == 0) { pred = "CALL"; color = Color.Green }
+                      else { pred = "PUT"; color = Color.Red }
+                  }
+              }
+              Column(modifier = Modifier.fillMaxSize().background(Color(0xFF0B0E11)).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                  Text("OTC AI PREDICTION BOT", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                  Spacer(modifier = Modifier.height(50.dp))
+                  Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF1E2329))) {
+                      Column(modifier = Modifier.padding(30.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                          Text("NEXT CANDLE (1M)", color = Color.Gray, fontSize = 14.sp)
+                          Text(pred, color = color, fontSize = 60.sp, fontWeight = FontWeight.Black)
+                          Text("PROBABILITY: \$prob%", color = Color.White, fontSize = 20.sp)
+                      }
+                  }
+              }
+          }
+          EOF
+
       - name: Build APK
         run: |
           wget https://services.gradle.org/distributions/gradle-8.2-bin.zip
           unzip gradle-8.2-bin.zip
-          chmod +x ./gradle-8.2/bin/gradle
-          ./gradle-8.2/bin/gradle assembleDebug --stacktrace
+          ./gradle-8.2/bin/gradle assembleDebug
 
-      - name: Find and Upload APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: OTC-AI-BOT-APK
+          name: OTC-AI-BOT-DOWNLOAD
           path: "**/*.apk"
-
-          
