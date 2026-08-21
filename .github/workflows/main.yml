@@ -22,3 +22,4 @@ jobs:
         with:
           name: OTC-AI-BOT-APK
           path: app/build/outputs/apk/debug/app-debug.apk
+          
